@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="兒童作息管理應用程式">
+    <meta name="keywords" content="作息表,兒童管理,積分系統">
+    <meta name="author" content="Finrod Chen">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>小朋友作息積分表</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="196x196" href="icons/favicon-196.png">
+    <link rel="apple-touch-icon" href="icons/apple-icon-180.png">
+</head>
+<body>
+    <!-- 登入介面 -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-form">
+            <div class="logo">
+                <img src="logo.png" alt="登入圖片" style="width: 200px">
+            </div>
+            <h1>家長登入</h1>
+            <p class="login-subtitle">請輸入帳號密碼以使用作息表</p>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="username">👤 帳號</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">🔑 密碼</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="login-btn">登入</button>
+                <div id="loginError" class="login-error" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主要應用程式內容 -->
+    <div id="mainApp" class="container" style="display: none;">
+        <div class="logout-section">
+            <button id="logoutBtn" class="logout-btn">🚪 登出</button>
+        </div>
+        <header>
+            <h1>🌟 我的作息表 🌟</h1>
+            <div class="child-selector">
+                <label for="childSelect">選擇小朋友：</label>
+                <select id="childSelect">
+                    <option value="child1">宥融</option>
+                    <option value="child2">玥熙</option>
+                </select>
+                <button id="addChildBtn">➕ 新增小朋友</button>
+                <button id="deleteChildBtn">🗑️ 刪除小朋友</button>
+            </div>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="schedule">📅 今日作息</button>
+            <button class="tab-btn" data-tab="points">⭐ 積分表</button>
+            <button class="tab-btn" data-tab="history">📚 歷史記錄</button>
+            <button class="tab-btn" data-tab="settings">⚙️ 設定</button>
+        </nav>
+
+        <!-- 今日作息頁面 -->
+        <div id="schedule" class="tab-content active">
+            <div class="date-selector">
+                <button id="prevDay">⬅️</button>
+                <span id="currentDate"></span>
+                <button id="nextDay">➡️</button>
+            </div>
+            
+            <div class="schedule-container">
+                <div class="schedule-header">
+                    <h2>📋 今日作息表</h2>
+                    <button id="editScheduleBtn">✏️ 編輯</button>
+                </div>
+                <div id="scheduleList" class="schedule-list"></div>
+            </div>
+        </div>
+
+        <!-- 積分表頁面 -->
+        <div id="points" class="tab-content">
+            <div class="points-summary">
+                <div class="total-points">
+                    <h2>🏆 總積分</h2>
+                    <div class="points-display" id="totalPoints">0</div>
+                </div>
+                <div class="weekly-points">
+                    <h3>📊 本週積分</h3>
+                    <div class="points-display" id="weeklyPoints">0</div>
+                </div>
+            </div>
+            
+            <div class="points-tasks">
+                <h3>✅ 今日任務</h3>
+                <div id="pointsTasksList" class="points-tasks-list"></div>
+            </div>
+            
+            <div class="rewards-section">
+                <h3>🎁 獎勵兌換</h3>
+                <div id="rewardsList" class="rewards-list"></div>
+            </div>
+        </div>
+
+        <!-- 歷史記錄頁面 -->
+        <div id="history" class="tab-content">
+            <div class="history-filters">
+                <select id="historyMonth">
+                    <option value="">選擇月份</option>
+                </select>
+                <select id="historyType">
+                    <option value="all">全部記錄</option>
+                    <option value="schedule">作息記錄</option>
+                    <option value="points">積分記錄</option>
+                </select>
+            </div>
+            <div id="historyContent" class="history-content"></div>
+        </div>
+
+        <!-- 設定頁面 -->
+        <div id="settings" class="tab-content">
+            <div class="settings-section">
+                <h3>📝 編輯作息表</h3>
+                <div id="scheduleEditor" class="schedule-editor">
+                    <div class="editor-controls">
+                        <button id="addScheduleItem">➕ 新增時段</button>
+                        <button id="saveSchedule">💾 儲存</button>
+                    </div>
+                    <div id="scheduleEditorList" class="schedule-editor-list"></div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>⭐ 編輯積分項目</h3>
+                <div id="pointsEditor" class="points-editor">
+                    <div class="editor-controls">
+                        <button id="addPointsItem">➕ 新增項目</button>
+                        <button id="savePoints">💾 儲存</button>
+                    </div>
+                    <div id="pointsEditorList" class="points-editor-list"></div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>🎁 編輯獎勵項目</h3>
+                <div id="rewardsEditor" class="rewards-editor">
+                    <div class="editor-controls">
+                        <button id="addRewardItem">➕ 新增獎勵</button>
+                        <button id="saveRewards">💾 儲存</button>
+                    </div>
+                    <div id="rewardsEditorList" class="rewards-editor-list"></div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>💾 數據管理</h3>
+                <div class="data-management">
+                    <div class="editor-controls">
+                        <button id="exportDataBtn">📤 匯出數據</button>
+                        <button id="importDataBtn">📥 匯入數據</button>
+                        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                    </div>
+                    <p class="data-info">💡 定期備份數據以防止意外丟失</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模態框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+    
+    <!-- 鼓勵彈窗 -->
+    <div id="encouragementPopup" class="encouragement-popup">
+        <div class="encouragement-content">
+            <h3>🎉 太棒了！</h3>
+            <p id="encouragementMessage"></p>
+            <button class="encouragement-close" onclick="closeEncouragementPopup()">我知道了</button>
+        </div>
+    </div>
+
+    <script src="script.js" type="module"></script>
+    <script>
+        // 註冊 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker 註冊成功:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker 註冊失敗:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
