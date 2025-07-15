@@ -13,6 +13,15 @@ const dbPath = join(__dirname, 'database.sqlite');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// 健康檢查端點
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
 // 中間件
 app.use(cors());
 app.use(bodyParser.json());
@@ -479,8 +488,8 @@ app.get('/api/export', async (req, res) => {
 });
 
 // 啟動服務器
-app.listen(PORT, () => {
-    console.log(`服務器運行在 http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`服務器運行在端口 ${PORT}`);
 });
 
 // 優雅關閉
