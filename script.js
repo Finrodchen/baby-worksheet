@@ -2,12 +2,9 @@
 import * as db from './db.js';
 
 // 全局變數
-let currentChild = 'child1';
+let currentChild = null;
 let currentDate = new Date();
-let children = {
-    child1: { name: '宥融', data: {} },
-    child2: { name: '玥熙', data: {} }
-};
+let children = {};
 
 // 登入相關變數
 let isLoggedIn = false;
@@ -178,31 +175,61 @@ async function initializeApp() {
         // 獲取所有孩子資料
         const allChildren = await db.getAllChildren();
         
-        // 如果沒有孩子資料，創建默認孩子
-        if (allChildren.length === 0) {
-            // 創建默認孩子
-            await db.saveChild({ id: 'child1', name: '宥融' });
-            await db.saveChild({ id: 'child2', name: '玥熙' });
-            
-            // 為每個孩子創建默認數據
-            await db.saveSchedules('child1', defaultSchedule);
-            await db.saveSchedules('child2', defaultSchedule);
-            
-            // 確保沒有重複的積分任務
-            const uniquePointsTasks = Array.from(
-                new Map(defaultPointsTasks.map(task => [task.name, task])).values()
-            );
-            await db.savePointsTasks('child1', uniquePointsTasks);
-            await db.savePointsTasks('child2', uniquePointsTasks);
-            
-            await db.saveRewards('child1', defaultRewards);
-            await db.saveRewards('child2', defaultRewards);
+        // 更新children物件
+        children = {};
+        allChildren.forEach(child => {
+            children[child.id] = { name: child.name, data: {} };
+        });
+        
+        // 如果有孩子資料，設定第一個為當前孩子
+        if (allChildren.length > 0) {
+            currentChild = allChildren[0].id;
         }
+        
+        // 更新孩子選擇下拉選單
+        await updateChildSelect();
         
         return true;
     } catch (error) {
         console.error('初始化應用程式時發生錯誤:', error);
         return false;
+    }
+}
+
+// 更新孩子選擇下拉選單
+async function updateChildSelect() {
+    try {
+        const allChildren = await db.getAllChildren();
+        const select = document.getElementById('childSelect');
+        
+        if (!select) return;
+        
+        select.innerHTML = '';
+        
+        if (allChildren.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = '請先新增孩子';
+            select.appendChild(option);
+            currentChild = null;
+        } else {
+            allChildren.forEach(child => {
+                const option = document.createElement('option');
+                option.value = child.id;
+                option.textContent = child.name;
+                select.appendChild(option);
+            });
+            
+            // 設置當前選中的孩子
+            if (currentChild && allChildren.find(c => c.id === currentChild)) {
+                select.value = currentChild;
+            } else if (allChildren.length > 0) {
+                currentChild = allChildren[0].id;
+                select.value = currentChild;
+            }
+        }
+    } catch (error) {
+        console.error('更新孩子選擇器時發生錯誤:', error);
     }
 }
 
