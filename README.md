@@ -61,6 +61,8 @@ npm run dev
    NODE_ENV=production
    ```
 
+**注意**: 本項目已解決 SQLite3 在雲端平台的兼容性問題，使用 `better-sqlite3` 作為主要資料庫驅動，確保在 Render 等平台上穩定運行。
+
 6. 部署完成後，複製 Render 提供的 URL
 7. 修改前端 `db.js` 文件中的 API 地址：
    ```javascript
