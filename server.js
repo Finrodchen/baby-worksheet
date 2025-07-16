@@ -10,6 +10,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // 使用環境變數或預設路徑
 const dbPath = process.env.DB_PATH || join(__dirname, 'data', 'database.sqlite');
+const dataDir = dirname(dbPath);
+
+// Debug 模式控制
+const DEBUG_MODE = process.env.NODE_ENV !== 'production';
+
+if (DEBUG_MODE) {
+    console.log('🔍 [INIT DEBUG] 資料庫路徑:', dbPath);
+    console.log('🔍 [INIT DEBUG] 資料目錄:', dataDir);
+}
+
+// 確保資料目錄存在
+if (!fs.existsSync(dataDir)) {
+    if (DEBUG_MODE) console.log('🔍 [INIT DEBUG] 資料目錄不存在，正在創建:', dataDir);
+    fs.mkdirSync(dataDir, { recursive: true });
+    if (DEBUG_MODE) console.log('🔍 [INIT DEBUG] 資料目錄創建成功');
+} else {
+    if (DEBUG_MODE) console.log('🔍 [INIT DEBUG] 資料目錄已存在');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,19 +37,34 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('.'));
 
-// 檢查資料庫是否存在，如果不存在則創建
+// 檢查資料庫是否存在
 if (!fs.existsSync(dbPath)) {
-    console.log('資料庫不存在，正在創建...');
-    // 這裡可以執行初始化腳本
+    if (DEBUG_MODE) console.log('🔍 [INIT DEBUG] 資料庫文件不存在，將在連接時創建:', dbPath);
+} else {
+    if (DEBUG_MODE) console.log('🔍 [INIT DEBUG] 資料庫文件已存在:', dbPath);
 }
 
 // 創建資料庫連接
+if (DEBUG_MODE) console.log('🔍 [INIT DEBUG] 嘗試連接資料庫...');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('無法連接到資料庫:', err.message);
+        if (DEBUG_MODE) {
+            console.error('🔍 [INIT DEBUG] 錯誤代碼:', err.code);
+            console.error('🔍 [INIT DEBUG] 資料庫路徑:', dbPath);
+            console.error('🔍 [INIT DEBUG] 目錄權限檢查...');
+            
+            try {
+                fs.accessSync(dataDir, fs.constants.W_OK);
+                console.log('🔍 [INIT DEBUG] 目錄有寫入權限');
+            } catch (accessErr) {
+                console.error('🔍 [INIT DEBUG] 目錄沒有寫入權限:', accessErr.message);
+            }
+        }
         process.exit(1);
     }
     console.log('已連接到 SQLite 資料庫');
+    if (DEBUG_MODE) console.log('🔍 [INIT DEBUG] 資料庫連接成功，路徑:', dbPath);
 });
 
 // API 路由
@@ -65,17 +98,47 @@ app.get('/api/children/:id', (req, res) => {
 
 // 新增或更新孩子
 app.post('/api/children', (req, res) => {
+    if (DEBUG_MODE) {
+        console.log('🔍 [SERVER DEBUG] 收到新增孩子請求');
+        console.log('🔍 [SERVER DEBUG] 請求體:', req.body);
+    }
+    
     const { id, name } = req.body;
+    
+    if (!id || !name) {
+        if (DEBUG_MODE) console.error('🔍 [SERVER DEBUG] 缺少必要參數: id或name');
+        res.status(400).json({ error: '缺少必要參數: id和name' });
+        return;
+    }
+    
+    if (DEBUG_MODE) {
+        console.log('🔍 [SERVER DEBUG] 開始執行SQL插入操作...');
+        console.log('🔍 [SERVER DEBUG] 參數 - ID:', id, 'Name:', name);
+    }
     
     db.run(
         'INSERT OR REPLACE INTO children (id, name, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
         [id, name],
         function(err) {
             if (err) {
+                console.error('保存孩子資料失敗:', err.message);
+                if (DEBUG_MODE) {
+                    console.error('🔍 [SERVER DEBUG] SQL執行錯誤:', err);
+                    console.error('🔍 [SERVER DEBUG] 錯誤詳情:', err.message);
+                }
                 res.status(500).json({ error: err.message });
                 return;
             }
-            res.json({ id, name, message: '孩子資料保存成功' });
+            
+            if (DEBUG_MODE) {
+                console.log('🔍 [SERVER DEBUG] SQL執行成功');
+                console.log('🔍 [SERVER DEBUG] 影響的行數:', this.changes);
+                console.log('🔍 [SERVER DEBUG] 最後插入的行ID:', this.lastID);
+            }
+            
+            const response = { id, name, message: '孩子資料保存成功' };
+            if (DEBUG_MODE) console.log('🔍 [SERVER DEBUG] 返回響應:', response);
+            res.json(response);
         }
     );
 });
@@ -479,9 +542,54 @@ app.get('/api/export', async (req, res) => {
     }
 });
 
+// 資料庫診斷函數
+function debugDatabase() {
+    console.log('🔍 [DB DIAGNOSTIC] 開始資料庫診斷...');
+    
+    // 檢查資料庫文件是否存在
+    console.log('🔍 [DB DIAGNOSTIC] 資料庫路徑:', dbPath);
+    console.log('🔍 [DB DIAGNOSTIC] 資料庫文件是否存在:', fs.existsSync(dbPath));
+    
+    if (fs.existsSync(dbPath)) {
+        const stats = fs.statSync(dbPath);
+        console.log('🔍 [DB DIAGNOSTIC] 資料庫文件大小:', stats.size, 'bytes');
+        console.log('🔍 [DB DIAGNOSTIC] 資料庫文件修改時間:', stats.mtime);
+    }
+    
+    // 檢查表結構
+    db.all("SELECT name FROM sqlite_master WHERE type='table'", (err, tables) => {
+        if (err) {
+            console.error('🔍 [DB DIAGNOSTIC] 查詢表結構失敗:', err);
+        } else {
+            console.log('🔍 [DB DIAGNOSTIC] 資料庫中的表:', tables.map(t => t.name));
+            
+            // 檢查 children 表的結構
+            db.all("PRAGMA table_info(children)", (err, columns) => {
+                if (err) {
+                    console.error('🔍 [DB DIAGNOSTIC] 查詢 children 表結構失敗:', err);
+                } else {
+                    console.log('🔍 [DB DIAGNOSTIC] children 表結構:', columns);
+                }
+            });
+            
+            // 檢查現有的孩子數據
+            db.all("SELECT * FROM children", (err, children) => {
+                if (err) {
+                    console.error('🔍 [DB DIAGNOSTIC] 查詢 children 數據失敗:', err);
+                } else {
+                    console.log('🔍 [DB DIAGNOSTIC] 現有孩子數據:', children);
+                }
+            });
+        }
+    });
+}
+
 // 啟動服務器
 app.listen(PORT, () => {
     console.log(`服務器運行在 http://localhost:${PORT}`);
+    
+    // 延遲執行資料庫診斷，確保資料庫已初始化
+    setTimeout(debugDatabase, 1000);
 });
 
 // 優雅關閉

@@ -6,6 +6,9 @@ let currentChild = null;
 let currentDate = new Date();
 let children = {};
 
+// Debug 模式（可通過 localStorage 控制）
+const DEBUG_MODE = localStorage.getItem('debugMode') === 'true' || window.location.search.includes('debug=true');
+
 // 登入相關變數
 let isLoggedIn = false;
 let isDbInitialized = false;
@@ -951,37 +954,71 @@ async function saveRewards() {
 
 // 新增孩子
 async function addNewChild() {
+    if (DEBUG_MODE) console.log('🔍 [DEBUG] 開始新增孩子流程');
     try {
         const name = prompt('請輸入新孩子的名字：');
+        if (DEBUG_MODE) console.log('🔍 [DEBUG] 用戶輸入的名字:', name);
+        
         if (name && name.trim()) {
             const childId = 'child' + Date.now();
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 生成的孩子ID:', childId);
             
             // 保存孩子基本資料
-            await db.saveChild({
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 開始保存孩子基本資料...');
+            const saveResult = await db.saveChild({
                 id: childId,
                 name: name.trim()
             });
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 保存孩子基本資料結果:', saveResult);
+            
+            // 檢查是否成功保存
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 驗證孩子是否成功保存...');
+            const savedChild = await db.getChild(childId);
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 驗證結果:', savedChild);
             
             // 保存預設數據
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 開始保存預設作息表...');
             await db.saveSchedules(childId, defaultSchedule);
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 預設作息表保存完成');
+            
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 開始保存預設積分任務...');
             await db.savePointsTasks(childId, defaultPointsTasks);
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 預設積分任務保存完成');
+            
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 開始保存預設獎勵項目...');
             await db.saveRewards(childId, defaultRewards);
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 預設獎勵項目保存完成');
             
             // 更新選擇器
-            const select = document.getElementById('childSelect');
-            const option = document.createElement('option');
-            option.value = childId;
-            option.textContent = name.trim();
-            select.appendChild(option);
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 開始更新孩子選擇器...');
+            await updateChildSelect();
             
             // 切換到新孩子
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 切換到新孩子:', childId);
             currentChild = childId;
-            select.value = childId;
+            const select = document.getElementById('childSelect');
+            if (select) {
+                select.value = childId;
+                if (DEBUG_MODE) console.log('🔍 [DEBUG] 選擇器值已設置為:', select.value);
+            } else {
+                if (DEBUG_MODE) console.error('🔍 [DEBUG] 找不到孩子選擇器元素');
+            }
             
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 開始刷新當前視圖...');
             await refreshCurrentView();
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 新增孩子流程完成');
+            
+            alert(`成功新增孩子「${name.trim()}」！`);
+        } else {
+            if (DEBUG_MODE) console.log('🔍 [DEBUG] 用戶取消或輸入空名字');
         }
     } catch (error) {
-        console.error('新增孩子時發生錯誤:', error);
+        console.error('新增孩子失敗:', error.message);
+        if (DEBUG_MODE) {
+            console.error('🔍 [DEBUG] 新增孩子時發生錯誤:', error);
+            console.error('🔍 [DEBUG] 錯誤堆疊:', error.stack);
+        }
+        alert('新增孩子失敗：' + error.message);
     }
 }
 

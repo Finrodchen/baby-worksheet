@@ -3,24 +3,56 @@
 // API 基礎 URL
 const API_BASE_URL = 'http://localhost:3001/api';
 
+// Debug 模式（與前端保持一致）
+const DEBUG_MODE = localStorage.getItem('debugMode') === 'true' || window.location.search.includes('debug=true');
+
 // 通用 API 請求函數
 async function apiRequest(url, options = {}) {
+    if (DEBUG_MODE) {
+        console.log('🔍 [API DEBUG] 準備發送請求');
+        console.log('🔍 [API DEBUG] URL:', `${API_BASE_URL}${url}`);
+        console.log('🔍 [API DEBUG] 選項:', options);
+    }
+    
+    const config = {
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        },
+        ...options
+    };
+    
+    if (DEBUG_MODE) console.log('🔍 [API DEBUG] 最終配置:', config);
+    
     try {
-        const response = await fetch(`${API_BASE_URL}${url}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        });
+        if (DEBUG_MODE) console.log('🔍 [API DEBUG] 發送 fetch 請求...');
+        const response = await fetch(`${API_BASE_URL}${url}`, config);
+        
+        if (DEBUG_MODE) {
+            console.log('🔍 [API DEBUG] 收到響應');
+            console.log('🔍 [API DEBUG] 響應狀態:', response.status);
+            console.log('🔍 [API DEBUG] 響應狀態文字:', response.statusText);
+            console.log('🔍 [API DEBUG] 響應是否成功:', response.ok);
+            console.log('🔍 [API DEBUG] 響應標頭:', Object.fromEntries(response.headers.entries()));
+        }
         
         if (!response.ok) {
+            const error = await response.text();
+            if (DEBUG_MODE) console.error('🔍 [API DEBUG] 響應錯誤內容:', error);
             throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`);
         }
         
-        return await response.json();
+        const result = await response.json();
+        if (DEBUG_MODE) console.log('🔍 [API DEBUG] 解析 JSON 成功:', result);
+        return result;
     } catch (error) {
-        console.error('API 請求錯誤:', error);
+        console.error('API 請求失敗:', error.message);
+        if (DEBUG_MODE) {
+            console.error('🔍 [API DEBUG] API 請求過程中發生錯誤:', error);
+            console.error('🔍 [API DEBUG] 錯誤類型:', error.constructor.name);
+            console.error('🔍 [API DEBUG] 錯誤訊息:', error.message);
+            console.error('🔍 [API DEBUG] 錯誤堆疊:', error.stack);
+        }
         throw error;
     }
 }
@@ -50,10 +82,28 @@ async function getChild(childId) {
 
 // 添加或更新孩子資料
 async function saveChild(child) {
-    return await apiRequest('/children', {
-        method: 'POST',
-        body: JSON.stringify(child)
-    });
+    if (DEBUG_MODE) {
+        console.log('🔍 [DB DEBUG] 開始保存孩子資料');
+        console.log('🔍 [DB DEBUG] 孩子資料:', child);
+    }
+    
+    try {
+        if (DEBUG_MODE) console.log('🔍 [DB DEBUG] 發送 POST 請求到 /children');
+        const result = await apiRequest('/children', {
+            method: 'POST',
+            body: JSON.stringify(child)
+        });
+        
+        if (DEBUG_MODE) console.log('🔍 [DB DEBUG] 保存成功，返回結果:', result);
+        return result;
+    } catch (error) {
+        console.error('保存孩子資料失敗:', error.message);
+        if (DEBUG_MODE) {
+            console.error('🔍 [DB DEBUG] 保存孩子資料時發生錯誤:', error);
+            console.error('🔍 [DB DEBUG] 錯誤堆疊:', error.stack);
+        }
+        throw error;
+    }
 }
 
 // 刪除孩子資料

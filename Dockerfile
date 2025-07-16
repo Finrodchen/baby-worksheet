@@ -27,11 +27,12 @@ RUN chmod -R 755 /app/data
 # 切換到非 root 用戶
 USER nextjs
 
-# 初始化資料庫（在非 root 用戶下執行）
-RUN node scripts/init-db.js
-
 # 暴露端口
 EXPOSE 3001
 
-# 啟動應用程式
-CMD ["node", "server.js"]
+# 創建啟動腳本
+COPY --chown=nextjs:nodejs docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
+# 使用啟動腳本
+CMD ["/app/docker-entrypoint.sh"]

@@ -4,9 +4,20 @@ npm-debug.log
 .gitignore
 README.md
 .env
+.env.local
+.env.*.local
 .nyc_output
 coverage
 .DS_Store
 *.log
 daily_worksheet.zip
 .github
+# 排除本地資料庫檔案（容器內會重新初始化）
+database.sqlite
+data/database.sqlite
+# 排除開發工具檔案
+.vscode
+.idea
+*.swp
+*.swo
+*~
