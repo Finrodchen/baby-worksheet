@@ -7,7 +7,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // 資料庫檔案路徑
-const dbPath = join(__dirname, '..', 'database.sqlite');
+const dbPath = process.env.DB_PATH || join(__dirname, '..', 'data', 'database.sqlite');
+
+// 確保資料目錄存在
+const dataDir = dirname(dbPath);
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
 
 // 創建資料庫連接
 const db = new sqlite3.Database(dbPath, (err) => {

@@ -8,7 +8,8 @@ import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const dbPath = join(__dirname, 'database.sqlite');
+// 使用環境變數或預設路徑
+const dbPath = process.env.DB_PATH || join(__dirname, 'data', 'database.sqlite');
 
 const app = express();
 const PORT = process.env.PORT || 3001;

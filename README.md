@@ -113,10 +113,30 @@ docker run -p 3001:3001 ghcr.io/your-username/your-repo:latest
 
 ## 資料持久化
 
-資料庫文件 `database.sqlite` 包含所有應用程式資料。在 Docker 部署時，建議將此文件掛載為 volume 以確保資料持久化：
+資料庫文件 `database.sqlite` 包含所有應用程式資料。在 Docker 部署時，建議將資料目錄掛載為 volume 以確保資料持久化：
 
 ```bash
-docker run -p 3001:3001 -v /path/to/your/database.sqlite:/app/database.sqlite baby-worksheet
+# 使用 named volume (推薦)
+docker run -p 3001:3001 -v baby_data:/app/data baby-worksheet
+
+# 或使用本地目錄掛載
+docker run -p 3001:3001 -v /path/to/your/data:/app/data baby-worksheet
+```
+
+### 解決資料庫寫入問題
+
+如果遇到資料庫無法寫入的問題，請確保：
+
+1. **使用正確的 volume 掛載**：掛載到 `/app/data` 目錄而不是單個文件
+2. **檢查權限**：確保容器用戶有寫入權限
+3. **使用環境變數**：設置 `DB_PATH=/app/data/database.sqlite`
+
+```bash
+# 正確的運行方式
+docker run -p 3001:3001 \
+  -v baby_data:/app/data \
+  -e DB_PATH=/app/data/database.sqlite \
+  baby-worksheet
 ```
 
 ## 開發指南
@@ -154,6 +174,57 @@ baby-worksheet/
 - `GET /children/:id/daily-records` - 獲取每日記錄
 - `POST /children/:id/daily-records` - 保存每日記錄
 - `GET /children/:id/daily-records/:date` - 獲取特定日期記錄
+
+## 故障排除
+
+### 常見問題
+
+#### 1. 資料庫無法寫入
+**症狀**: 應用啟動正常，但無法保存資料
+**解決方案**:
+```bash
+# 檢查容器日誌
+docker logs <container_name>
+
+# 確保使用正確的 volume 掛載
+docker-compose down
+docker-compose up -d
+
+# 或手動運行並檢查權限
+docker run -it --rm baby-worksheet ls -la /app/data
+```
+
+#### 2. 端口被佔用
+**症狀**: `EADDRINUSE` 錯誤
+**解決方案**:
+```bash
+# 修改 docker-compose.yml 中的端口映射
+ports:
+  - "3002:3001"  # 使用不同的外部端口
+```
+
+#### 3. 容器啟動失敗
+**症狀**: 容器立即退出
+**解決方案**:
+```bash
+# 檢查容器日誌
+docker logs <container_name>
+
+# 進入容器調試
+docker run -it --rm baby-worksheet sh
+```
+
+### 開發模式調試
+
+```bash
+# 本地開發
+npm install
+npm run init-db
+npm run dev
+
+# 檢查資料庫
+sqlite3 data/database.sqlite ".tables"
+```
 
 ## 授權
 
