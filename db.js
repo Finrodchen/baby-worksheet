@@ -1,10 +1,7 @@
 // SQLite數據庫操作模組 (通過 API 與後端通信)
 
 // API 基礎 URL
-// 根據環境自動切換 API 地址
-const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3001/api'
-    : 'https://your-render-app.onrender.com/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 // 通用 API 請求函數
 async function apiRequest(url, options = {}) {
