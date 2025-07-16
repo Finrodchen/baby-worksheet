@@ -1,10 +1,18 @@
 // SQLite數據庫操作模組 (通過 API 與後端通信)
 
-// API 基礎 URL
-const API_BASE_URL = 'http://localhost:3001/api';
-
-// Debug 模式（與前端保持一致）
+// Debug 模式控制
 const DEBUG_MODE = localStorage.getItem('debugMode') === 'true' || window.location.search.includes('debug=true');
+
+// 使用全域配置模組獲取 API 基礎 URL
+const API_BASE_URL = window.AppConfig ? window.AppConfig.apiBaseUrl : '/api';
+
+// Debug 輸出當前配置
+if (DEBUG_MODE) {
+    console.log('🔍 [DB] API Base URL:', API_BASE_URL);
+    console.log('🔍 [DB] Environment:', window.AppConfig?.environment);
+    console.log('🔍 [DB] Hostname:', window.location.hostname);
+    console.log('🔍 [DB] Port:', window.location.port);
+}
 
 // 通用 API 請求函數
 async function apiRequest(url, options = {}) {

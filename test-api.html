@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 連接測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .debug-toggle {
+            background-color: #28a745;
+        }
+        .debug-toggle:hover {
+            background-color: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 API 連接測試工具</h1>
+    
+    <div class="test-container">
+        <h2>環境資訊</h2>
+        <div id="envInfo" class="test-result info"></div>
+        <button onclick="toggleDebug()" class="debug-toggle">切換 Debug 模式</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>API 連接測試</h2>
+        <button onclick="testApiConnection()">測試 API 連接</button>
+        <button onclick="testGetChildren()">測試獲取孩子列表</button>
+        <button onclick="testAddChild()">測試新增孩子</button>
+        <div id="testResults"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>故障排除建議</h2>
+        <div class="test-result info">
+            <strong>常見問題解決方案：</strong><br>
+            1. <strong>Fail to Fetch 錯誤：</strong><br>
+            &nbsp;&nbsp;- 檢查 Docker 容器是否正在運行<br>
+            &nbsp;&nbsp;- 確認端口 3001 是否可訪問<br>
+            &nbsp;&nbsp;- 檢查防火牆設置<br><br>
+            
+            2. <strong>CORS 錯誤：</strong><br>
+            &nbsp;&nbsp;- 確認後端已正確配置 CORS<br>
+            &nbsp;&nbsp;- 檢查請求來源是否被允許<br><br>
+            
+            3. <strong>404 錯誤：</strong><br>
+            &nbsp;&nbsp;- 確認 API 路由是否正確<br>
+            &nbsp;&nbsp;- 檢查後端服務是否正常啟動<br><br>
+            
+            4. <strong>500 錯誤：</strong><br>
+            &nbsp;&nbsp;- 檢查後端日誌<br>
+            &nbsp;&nbsp;- 確認資料庫連接是否正常
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // 顯示環境資訊
+        function showEnvironmentInfo() {
+            const envInfo = document.getElementById('envInfo');
+            const config = window.AppConfig;
+            
+            envInfo.innerHTML = `
+                <strong>當前環境配置：</strong><br>
+                主機名: ${window.location.hostname}<br>
+                端口: ${window.location.port || '80/443'}<br>
+                協議: ${window.location.protocol}<br>
+                API 基礎 URL: ${config ? config.apiBaseUrl : '未載入'}<br>
+                環境類型: ${config ? JSON.stringify(config.environment) : '未載入'}<br>
+                Debug 模式: ${localStorage.getItem('debugMode') === 'true' ? '開啟' : '關閉'}
+            `;
+        }
+        
+        // 切換 Debug 模式
+        function toggleDebug() {
+            const currentDebug = localStorage.getItem('debugMode') === 'true';
+            localStorage.setItem('debugMode', (!currentDebug).toString());
+            showEnvironmentInfo();
+            addResult(`Debug 模式已${!currentDebug ? '開啟' : '關閉'}`, 'info');
+        }
+        
+        // 添加測試結果
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+        }
+        
+        // 測試 API 連接
+        async function testApiConnection() {
+            addResult('開始測試 API 連接...', 'info');
+            
+            try {
+                const apiUrl = window.AppConfig ? window.AppConfig.apiBaseUrl : '/api';
+                const response = await fetch(`${apiUrl}/children`);
+                
+                if (response.ok) {
+                    addResult(`✅ API 連接成功！狀態碼: ${response.status}`, 'success');
+                    const data = await response.json();
+                    addResult(`📊 回應數據: ${JSON.stringify(data)}`, 'info');
+                } else {
+                    addResult(`❌ API 連接失敗！狀態碼: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ API 連接錯誤: ${error.message}`, 'error');
+                addResult(`🔍 錯誤詳情: ${error.stack}`, 'error');
+            }
+        }
+        
+        // 測試獲取孩子列表
+        async function testGetChildren() {
+            addResult('測試獲取孩子列表...', 'info');
+            
+            try {
+                const apiUrl = window.AppConfig ? window.AppConfig.apiBaseUrl : '/api';
+                const response = await fetch(`${apiUrl}/children`);
+                
+                if (response.ok) {
+                    const children = await response.json();
+                    addResult(`✅ 成功獲取孩子列表，共 ${children.length} 個孩子`, 'success');
+                    children.forEach(child => {
+                        addResult(`👶 ${child.name} (ID: ${child.id})`, 'info');
+                    });
+                } else {
+                    addResult(`❌ 獲取孩子列表失敗！狀態碼: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ 獲取孩子列表錯誤: ${error.message}`, 'error');
+            }
+        }
+        
+        // 測試新增孩子
+        async function testAddChild() {
+            addResult('測試新增孩子功能...', 'info');
+            
+            const testChild = {
+                id: `test_${Date.now()}`,
+                name: `測試孩子_${Date.now()}`,
+                schedule: [],
+                pointsItems: [],
+                rewards: []
+            };
+            
+            try {
+                const apiUrl = window.AppConfig ? window.AppConfig.apiBaseUrl : '/api';
+                const response = await fetch(`${apiUrl}/children`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testChild)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    addResult(`✅ 成功新增測試孩子: ${testChild.name}`, 'success');
+                    addResult(`📊 回應: ${JSON.stringify(result)}`, 'info');
+                } else {
+                    addResult(`❌ 新增孩子失敗！狀態碼: ${response.status}`, 'error');
+                    const errorText = await response.text();
+                    addResult(`🔍 錯誤回應: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ 新增孩子錯誤: ${error.message}`, 'error');
+            }
+        }
+        
+        // 頁面載入時顯示環境資訊
+        window.addEventListener('load', showEnvironmentInfo);
+    </script>
+</body>
+</html>
