@@ -2,7 +2,6 @@ export default {
   apps: [{
     name: 'baby-worksheet',
     script: 'server.js',
-    pmx: false,
     env: {
       NODE_ENV: 'development'
     },
